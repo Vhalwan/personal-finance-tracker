@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import engine, Base
 import app.models  # registers Ingredient, Recipe, RecipeIngredient, MealPlan with Base
-from app.routes import ingredients, recipes
+from app.routes import ingredients, meal_plans, recipes
 
 # Creates all tables in PostgreSQL on startup if they don't exist yet
 Base.metadata.create_all(bind=engine)
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(ingredients.router)
 app.include_router(recipes.router)
+app.include_router(meal_plans.router)
 
 
 @app.get("/health")
