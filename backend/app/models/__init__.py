@@ -2,6 +2,7 @@ from app.models.ingredient import Ingredient
 from app.models.recipe import Recipe
 from app.models.recipe_ingredient import RecipeIngredient
 from app.models.meal_plan import MealPlan, MealType
+from app.models.user import User
 
 __all__ = [
     "Ingredient",
@@ -9,4 +10,5 @@ __all__ = [
     "RecipeIngredient",
     "MealPlan",
     "MealType",
+    "User",
 ]
