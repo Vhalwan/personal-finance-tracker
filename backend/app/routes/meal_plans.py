@@ -26,11 +26,11 @@ def create_meal_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recipe = db.query(Recipe).filter(Recipe.id == meal_plan.recipe_id).first()
+    recipe = db.query(Recipe).filter(Recipe.id == meal_plan.recipe_id, Recipe.user_id == current_user.id).first()
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    db_meal_plan = MealPlan(**meal_plan.model_dump())
+    db_meal_plan = MealPlan(**meal_plan.model_dump(), user_id=current_user.id)
     db.add(db_meal_plan)
     db.commit()
     db.refresh(db_meal_plan)
@@ -47,7 +47,11 @@ def get_meal_plans(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return _meal_plan_query(db).all()
+    return (
+        _meal_plan_query(db)
+        .filter(MealPlan.user_id == current_user.id)
+        .all()
+    )
 
 
 @router.get("/week/{start_date}", response_model=List[MealPlanResponse])
@@ -59,6 +63,7 @@ def get_meal_plans_for_week(
     end_date = start_date + timedelta(days=6)
     return (
         _meal_plan_query(db)
+        .filter(MealPlan.user_id == current_user.id)
         .filter(MealPlan.planned_date >= start_date, MealPlan.planned_date <= end_date)
         .all()
     )
@@ -70,7 +75,12 @@ def get_meal_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    meal_plan = _meal_plan_query(db).filter(MealPlan.id == id).first()
+    meal_plan = (
+        _meal_plan_query(db)
+        .filter(MealPlan.id == id)
+        .filter(MealPlan.user_id == current_user.id)
+        .first()
+    )
     if not meal_plan:
         raise HTTPException(status_code=404, detail="Meal plan not found")
     return meal_plan
@@ -83,13 +93,18 @@ def update_meal_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    db_meal_plan = _meal_plan_query(db).filter(MealPlan.id == id).first()
+    db_meal_plan = (
+        _meal_plan_query(db)
+        .filter(MealPlan.id == id)
+        .filter(MealPlan.user_id == current_user.id)
+        .first()
+    )
     if not db_meal_plan:
         raise HTTPException(status_code=404, detail="Meal plan not found")
 
     update_data = meal_plan.model_dump(exclude_unset=True)
     if "recipe_id" in update_data:
-        recipe = db.query(Recipe).filter(Recipe.id == update_data["recipe_id"]).first()
+        recipe = db.query(Recipe).filter(Recipe.id == update_data["recipe_id"], Recipe.user_id == current_user.id).first()
         if not recipe:
             raise HTTPException(status_code=404, detail="Recipe not found")
 
@@ -98,7 +113,12 @@ def update_meal_plan(
 
     db.commit()
 
-    return _meal_plan_query(db).filter(MealPlan.id == id).first()
+    return (
+        _meal_plan_query(db)
+        .filter(MealPlan.id == id)
+        .filter(MealPlan.user_id == current_user.id)
+        .first()
+    )
 
 
 @router.delete("/{id}", status_code=204)
@@ -107,7 +127,12 @@ def delete_meal_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    db_meal_plan = db.query(MealPlan).filter(MealPlan.id == id).first()
+    db_meal_plan = (
+        db.query(MealPlan)
+        .filter(MealPlan.id == id)
+        .filter(MealPlan.user_id == current_user.id)
+        .first()
+    )
     if not db_meal_plan:
         raise HTTPException(status_code=404, detail="Meal plan not found")
 

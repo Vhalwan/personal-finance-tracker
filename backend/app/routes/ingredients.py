@@ -18,7 +18,7 @@ def create_ingredient(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    db_ingredient = Ingredient(**ingredient.model_dump())
+    db_ingredient = Ingredient(**ingredient.model_dump(), user_id=current_user.id)
     db.add(db_ingredient)
     db.commit()
     db.refresh(db_ingredient)
@@ -32,7 +32,13 @@ def get_ingredients(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Ingredient).offset(skip).limit(limit).all()
+    return (
+        db.query(Ingredient)
+        .filter(Ingredient.user_id == current_user.id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.get("/{id}", response_model=IngredientResponse)
@@ -41,7 +47,12 @@ def get_ingredient(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ingredient = db.query(Ingredient).filter(Ingredient.id == id).first()
+    ingredient = (
+        db.query(Ingredient)
+        .filter(Ingredient.id == id)
+        .filter(Ingredient.user_id == current_user.id)
+        .first()
+    )
     if not ingredient:
         raise HTTPException(status_code=404, detail="Ingredient not found")
     return ingredient
@@ -54,7 +65,12 @@ def update_ingredient(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    db_ingredient = db.query(Ingredient).filter(Ingredient.id == id).first()
+    db_ingredient = (
+        db.query(Ingredient)
+        .filter(Ingredient.id == id)
+        .filter(Ingredient.user_id == current_user.id)
+        .first()
+    )
     if not db_ingredient:
         raise HTTPException(status_code=404, detail="Ingredient not found")
 
@@ -73,7 +89,12 @@ def delete_ingredient(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    db_ingredient = db.query(Ingredient).filter(Ingredient.id == id).first()
+    db_ingredient = (
+        db.query(Ingredient)
+        .filter(Ingredient.id == id)
+        .filter(Ingredient.user_id == current_user.id)
+        .first()
+    )
     if not db_ingredient:
         raise HTTPException(status_code=404, detail="Ingredient not found")
 

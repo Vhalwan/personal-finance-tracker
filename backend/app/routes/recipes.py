@@ -20,7 +20,7 @@ def create_recipe(
     current_user: User = Depends(get_current_user),
 ):
     recipe_data = recipe.model_dump(exclude={"ingredients"})
-    db_recipe = Recipe(**recipe_data)
+    db_recipe = Recipe(**recipe_data, user_id=current_user.id)
     db.add(db_recipe)
     db.flush()
 
@@ -47,7 +47,12 @@ def get_recipes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Recipe).options(joinedload(Recipe.ingredients)).all()
+    return (
+        db.query(Recipe)
+        .options(joinedload(Recipe.ingredients))
+        .filter(Recipe.user_id == current_user.id)
+        .all()
+    )
 
 
 @router.get("/{id}", response_model=RecipeResponse)
@@ -60,6 +65,7 @@ def get_recipe(
         db.query(Recipe)
         .options(joinedload(Recipe.ingredients))
         .filter(Recipe.id == id)
+        .filter(Recipe.user_id == current_user.id)
         .first()
     )
     if not recipe:
@@ -78,6 +84,7 @@ def update_recipe(
         db.query(Recipe)
         .options(joinedload(Recipe.ingredients))
         .filter(Recipe.id == id)
+        .filter(Recipe.user_id == current_user.id)
         .first()
     )
     if not db_recipe:
@@ -98,7 +105,12 @@ def delete_recipe(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    db_recipe = db.query(Recipe).filter(Recipe.id == id).first()
+    db_recipe = (
+        db.query(Recipe)
+        .filter(Recipe.id == id)
+        .filter(Recipe.user_id == current_user.id)
+        .first()
+    )
     if not db_recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 

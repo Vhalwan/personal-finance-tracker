@@ -19,5 +19,7 @@ class MealPlan(Base):
     meal_type = Column(Enum(MealType), nullable=False)
     recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     recipe = relationship("Recipe", back_populates="meal_plans")
+    user = relationship("User", back_populates="meal_plans")
