@@ -1,7 +1,9 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
+import MealPlans from "./pages/MealPlans";
 import Pantry from "./pages/Pantry";
+import Recipes from "./pages/Recipes";
 import Register from "./pages/Register";
 
 function ProtectedRoute({ children }) {
@@ -25,6 +27,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Pantry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recipes"
+            element={
+              <ProtectedRoute>
+                <Recipes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/meal-plans"
+            element={
+              <ProtectedRoute>
+                <MealPlans />
               </ProtectedRoute>
             }
           />

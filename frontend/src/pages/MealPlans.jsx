@@ -1,37 +1,39 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  createIngredient,
-  deleteIngredient,
-  getIngredients,
-} from "../api/ingredients";
+import { createMealPlan, deleteMealPlan, getMealPlans } from "../api/mealPlans";
+import { getRecipes } from "../api/recipes";
 import { useAuth } from "../context/AuthContext";
 
-export default function Pantry() {
+export default function MealPlans() {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [ingredients, setIngredients] = useState([]);
+  const [mealPlans, setMealPlans] = useState([]);
+  const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [name, setName] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [unit, setUnit] = useState("");
+  const [recipeId, setRecipeId] = useState("");
+  const [plannedDate, setPlannedDate] = useState("");
+  const [mealType, setMealType] = useState("breakfast");
   const [submitting, setSubmitting] = useState(false);
 
-  async function loadIngredients() {
+  async function loadData() {
     setError("");
     try {
-      const data = await getIngredients();
-      setIngredients(data);
+      const [mealPlansData, recipesData] = await Promise.all([
+        getMealPlans(),
+        getRecipes(),
+      ]);
+      setMealPlans(mealPlansData);
+      setRecipes(recipesData);
     } catch {
-      setError("Failed to load ingredients.");
+      setError("Failed to load meal plans.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadIngredients();
+    loadData();
   }, []);
 
   async function handleAdd(e) {
@@ -39,17 +41,17 @@ export default function Pantry() {
     setSubmitting(true);
     setError("");
     try {
-      await createIngredient({
-        name,
-        quantity: Number(quantity),
-        unit,
+      await createMealPlan({
+        recipe_id: Number(recipeId),
+        planned_date: plannedDate,
+        meal_type: mealType,
       });
-      setName("");
-      setQuantity("");
-      setUnit("");
-      await loadIngredients();
+      setRecipeId("");
+      setPlannedDate("");
+      setMealType("breakfast");
+      await loadData();
     } catch {
-      setError("Failed to add ingredient.");
+      setError("Failed to add meal plan.");
     } finally {
       setSubmitting(false);
     }
@@ -58,10 +60,10 @@ export default function Pantry() {
   async function handleDelete(id) {
     setError("");
     try {
-      await deleteIngredient(id);
-      await loadIngredients();
+      await deleteMealPlan(id);
+      await loadData();
     } catch {
-      setError("Failed to delete ingredient.");
+      setError("Failed to delete meal plan.");
     }
   }
 
@@ -75,11 +77,11 @@ export default function Pantry() {
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <h1 className="text-xl font-semibold text-slate-900">My Pantry</h1>
+            <h1 className="text-xl font-semibold text-slate-900">Meal Plans</h1>
             <nav className="flex gap-4 text-sm">
               <Link
                 to="/pantry"
-                className="font-medium text-slate-900"
+                className="text-slate-600 hover:text-slate-900"
               >
                 Pantry
               </Link>
@@ -91,7 +93,7 @@ export default function Pantry() {
               </Link>
               <Link
                 to="/meal-plans"
-                className="text-slate-600 hover:text-slate-900"
+                className="font-medium text-slate-900"
               >
                 Meal Plans
               </Link>
@@ -110,38 +112,42 @@ export default function Pantry() {
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h2 className="text-lg font-medium text-slate-900 mb-4">
-            Add ingredient
+            Add meal plan
           </h2>
           <form
             onSubmit={handleAdd}
             className="grid grid-cols-1 sm:grid-cols-4 gap-3"
           >
-            <input
-              type="text"
+            <select
               required
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={recipeId}
+              onChange={(e) => setRecipeId(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            >
+              <option value="">Select recipe</option>
+              {recipes.map((recipe) => (
+                <option key={recipe.id} value={recipe.id}>
+                  {recipe.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="date"
+              required
+              value={plannedDate}
+              onChange={(e) => setPlannedDate(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
-            <input
-              type="number"
+            <select
               required
-              min="0"
-              step="any"
-              placeholder="Quantity"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              value={mealType}
+              onChange={(e) => setMealType(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
-            />
-            <input
-              type="text"
-              required
-              placeholder="Unit (g, ml, pcs)"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
-            />
+            >
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+            </select>
             <button
               type="submit"
               disabled={submitting}
@@ -160,40 +166,38 @@ export default function Pantry() {
 
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200">
-            <h2 className="text-lg font-medium text-slate-900">Ingredients</h2>
+            <h2 className="text-lg font-medium text-slate-900">Meal plans</h2>
           </div>
 
           {loading ? (
             <p className="px-6 py-8 text-slate-500 text-sm">Loading…</p>
-          ) : ingredients.length === 0 ? (
+          ) : mealPlans.length === 0 ? (
             <p className="px-6 py-8 text-slate-500 text-sm">
-              No ingredients yet. Add one above.
+              No meal plans yet. Add one above.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="px-6 py-3 font-medium">Name</th>
-                    <th className="px-6 py-3 font-medium">Quantity</th>
-                    <th className="px-6 py-3 font-medium">Unit</th>
-                    <th className="px-6 py-3 font-medium">Category</th>
-                    <th className="px-6 py-3 font-medium">Expiry</th>
+                    <th className="px-6 py-3 font-medium">Date</th>
+                    <th className="px-6 py-3 font-medium">Meal</th>
+                    <th className="px-6 py-3 font-medium">Recipe</th>
                     <th className="px-6 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {ingredients.map((item) => (
-                    <tr key={item.id} className="text-slate-800">
-                      <td className="px-6 py-3">{item.name}</td>
-                      <td className="px-6 py-3">{item.quantity}</td>
-                      <td className="px-6 py-3">{item.unit}</td>
-                      <td className="px-6 py-3">{item.category ?? "—"}</td>
-                      <td className="px-6 py-3">{item.expiry_date ?? "—"}</td>
+                  {mealPlans.map((plan) => (
+                    <tr key={plan.id} className="text-slate-800">
+                      <td className="px-6 py-3">{plan.planned_date}</td>
+                      <td className="px-6 py-3 capitalize">{plan.meal_type}</td>
+                      <td className="px-6 py-3">
+                        {plan.recipe?.name ?? "—"}
+                      </td>
                       <td className="px-6 py-3 text-right">
                         <button
                           type="button"
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(plan.id)}
                           className="text-red-600 hover:text-red-700 font-medium"
                         >
                           Delete
