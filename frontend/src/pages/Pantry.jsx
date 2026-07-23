@@ -5,6 +5,7 @@ import {
   deleteIngredient,
   getIngredients,
 } from "../api/ingredients";
+import { getSuggestions } from "../api/suggestions";
 import { useAuth } from "../context/AuthContext";
 
 export default function Pantry() {
@@ -17,6 +18,9 @@ export default function Pantry() {
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState("");
 
   async function loadIngredients() {
     setError("");
@@ -65,6 +69,23 @@ export default function Pantry() {
     }
   }
 
+  async function handleSuggest() {
+    setSuggesting(true);
+    setSuggestError("");
+    setSuggestions([]);
+    try {
+      const data = await getSuggestions();
+      setSuggestions(data);
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setSuggestError(
+        typeof detail === "string" ? detail : "Failed to get recipe suggestions."
+      );
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
   function handleLogout() {
     logout();
     navigate("/login");
@@ -108,6 +129,17 @@ export default function Pantry() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleSuggest}
+            disabled={suggesting}
+            className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800 disabled:opacity-60"
+          >
+            {suggesting ? "Suggesting…" : "Suggest recipes"}
+          </button>
+        </div>
+
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h2 className="text-lg font-medium text-slate-900 mb-4">
             Add ingredient
@@ -206,6 +238,50 @@ export default function Pantry() {
             </div>
           )}
         </section>
+
+        {suggestError && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            {suggestError}
+          </p>
+        )}
+
+        {(suggesting || suggestions.length > 0) && (
+          <section className="space-y-4">
+            <h2 className="text-lg font-medium text-slate-900">
+              Recipe suggestions
+            </h2>
+            {suggesting ? (
+              <p className="text-sm text-slate-500">Generating suggestions…</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {suggestions.map((recipe, index) => (
+                  <article
+                    key={`${recipe.name}-${index}`}
+                    className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3"
+                  >
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {recipe.name}
+                    </h3>
+                    <p className="text-sm text-slate-600">{recipe.description}</p>
+                    <p className="text-sm text-slate-500">
+                      Prep time: {recipe.prep_time_minutes} min
+                    </p>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800 mb-1">
+                        Ingredients used
+                      </p>
+                      <ul className="list-disc list-inside text-sm text-slate-600 space-y-0.5">
+                        {(recipe.ingredients_used ?? []).map((ing) => (
+                          <li key={ing}>{ing}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );
